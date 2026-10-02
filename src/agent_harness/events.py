@@ -36,7 +36,7 @@ class Event(BaseModel):
     model_config = ConfigDict(frozen=True)
     id: UUID = Field(default_factory=uuid4)
     timestamp: float = Field(default_factory=time.time)
-    parent_id: UUID | None = None
+    parent_id: UUID
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -101,7 +101,6 @@ class AssistantMessage(Event):
 
 
 # Streaming deltas
-
 
 class TextDelta(BaseModel):
     """A fragment of response text received while streaming.
