@@ -109,6 +109,10 @@ class AssistantMessage(Event):
     content: str = ""
     tool_calls: tuple[ToolCall, ...] = ()
 
+class ToolResultBatch(Event):
+    parent_id: UUID
+    type: Literal["tool_result_batch"] = "tool_result_batch"
+    results: tuple[ToolResult, ...]
 
 # Streaming deltas
 
