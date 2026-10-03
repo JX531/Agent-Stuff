@@ -36,7 +36,7 @@ class Event(BaseModel):
     model_config = ConfigDict(frozen=True)
     id: UUID = Field(default_factory=uuid4)
     timestamp: float = Field(default_factory=time.time)
-    parent_id: UUID
+    parent_id: UUID | None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -47,8 +47,13 @@ class UserMessage(Event):
         content: The message text.
     """
 
+    parent_id: UUID
     type: Literal["user_message"] = "user_message"
     content: str
+
+class SessionStart(Event): 
+    parent_id: UUID | None = None
+    type: Literal["session_start"] = "session_start"
 
 
 class ToolCall(Event):
@@ -96,6 +101,7 @@ class AssistantMessage(Event):
         content: The response text. Empty if the response only called tools.
     """
 
+    parent_id: UUID
     type: Literal["assistant_message"] = "assistant_message"
     content: str = ""
 
