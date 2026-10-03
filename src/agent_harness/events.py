@@ -107,6 +107,7 @@ class AssistantMessage(Event):
     parent_id: UUID
     type: Literal["assistant_message"] = "assistant_message"
     content: str = ""
+    tool_calls: tuple[ToolCall, ...] = ()
 
 
 # Streaming deltas
