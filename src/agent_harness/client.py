@@ -41,6 +41,22 @@ def parse_chunk(chunk:dict[str, Any]) -> Iterator[TextDelta | ToolCallStart | To
             yield ToolCallDelta(index=index, arguments_fragment=arguments)
 
 def events_to_messages(events:list[Event]) -> list[dict[str,Any]]:
+    """Convert a linear event history into OpenAI-style chat messages.
+
+    Tool calls are read from each ``AssistantMessage`` and tool results from each
+    ``ToolResultBatch``; the two are paired by the provider's ``call_id``.
+    ``SessionStart`` has no wire equivalent and is skipped.
+
+    Args:
+        events: Events along a single path through the history, oldest first.
+
+    Returns:
+        A list of message dicts ready to send as the ``messages`` field.
+
+    Raises:
+        TypeError: If an event of an unrecognized type is encountered.
+    """
+    
     messages: list[dict[str, Any]] = []
     for event in events:
         if isinstance(event, SessionStart):
