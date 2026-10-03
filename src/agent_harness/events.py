@@ -16,8 +16,46 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# Events
+# Tools
 
+class ToolCall(BaseModel):
+    """A request from the model to run a tool.
+
+    A single model response can produce several tool calls. Each is stored as its own
+    event whose ``parent_id`` is the ``AssistantMessage`` that issued it.
+
+    Attributes:
+        call_id: The provider's identifier for this call, which must be sent back
+            alongside the result when building the next request.
+        name: Name of the tool to run.
+        args: Parsed arguments to pass to the tool.
+    """
+
+    model_config = ConfigDict(frozen=True)
+    call_id: str
+    name: str
+    args: dict[str, Any]
+
+
+class ToolResult(BaseModel):
+    """The outcome of running a tool, including failures.
+
+    Its ``parent_id`` is the ``ToolCall`` it answers. A failed call still produces a
+    result, with ``is_error`` set and the error described in ``content``.
+
+    Attributes:
+        is_error: True if the tool failed.
+        content: Text shown to the model, or the error as ``ExceptionType: message``.
+    """
+
+    model_config = ConfigDict(frozen=True)
+    call_id: str
+    is_error: bool = False
+    content: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+# Events
 
 class Event(BaseModel):
     """Base class for everything stored in the conversation history.
@@ -54,41 +92,6 @@ class UserMessage(Event):
 class SessionStart(Event): 
     parent_id: UUID | None = None
     type: Literal["session_start"] = "session_start"
-
-
-class ToolCall(Event):
-    """A request from the model to run a tool.
-
-    A single model response can produce several tool calls. Each is stored as its own
-    event whose ``parent_id`` is the ``AssistantMessage`` that issued it.
-
-    Attributes:
-        call_id: The provider's identifier for this call, which must be sent back
-            alongside the result when building the next request.
-        name: Name of the tool to run.
-        args: Parsed arguments to pass to the tool.
-    """
-
-    type: Literal["tool_call"] = "tool_call"
-    call_id: str
-    name: str
-    args: dict[str, Any]
-
-
-class ToolResult(Event):
-    """The outcome of running a tool, including failures.
-
-    Its ``parent_id`` is the ``ToolCall`` it answers. A failed call still produces a
-    result, with ``is_error`` set and the error described in ``content``.
-
-    Attributes:
-        is_error: True if the tool failed.
-        content: Text shown to the model, or the error as ``ExceptionType: message``.
-    """
-
-    type: Literal["tool_result"] = "tool_result"
-    is_error: bool = False
-    content: str
 
 
 class AssistantMessage(Event):
