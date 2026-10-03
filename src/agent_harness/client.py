@@ -1,8 +1,9 @@
 """Client for talking to a vLLM server over its OpenAI-compatible HTTP API.
 """
 
+import json
 from typing import Any, Iterator
-from agent_harness.events import TextDelta, ToolCallStart, ToolCallDelta
+from agent_harness.events import SessionStart, Event, UserMessage, AssistantMessage, ToolResultBatch, ToolCall, ToolResult, TextDelta, ToolCallStart, ToolCallDelta
 
 def parse_chunk(chunk:dict[str, Any]) -> Iterator[TextDelta | ToolCallStart | ToolCallDelta]:
     """Turn one decoded SSE JSON chunk into zero or more streaming deltas.
@@ -38,3 +39,40 @@ def parse_chunk(chunk:dict[str, Any]) -> Iterator[TextDelta | ToolCallStart | To
         arguments = call_function.get("arguments")
         if arguments:
             yield ToolCallDelta(index=index, arguments_fragment=arguments)
+
+def events_to_messages(events:list[Event]) -> list[dict[str,Any]]:
+    messages: list[dict[str, Any]] = []
+    for event in events:
+        if isinstance(event, SessionStart):
+            continue
+
+        elif isinstance(event, UserMessage):
+            messages.append({"role": "user", "content": event.content})
+
+        elif isinstance(event, AssistantMessage):
+            message: dict[str, Any] = {"role": "assistant", "content": event.content}
+            if event.tool_calls:
+                message["tool_calls"] = [
+                    {
+                        "id": tool_call.call_id,
+                        "type": "function",
+                        "function": {
+                            "name": tool_call.name,
+                            "arguments": json.dumps(tool_call.args)
+                        }
+                    } for tool_call in event.tool_calls
+                ]
+
+                if not event.content:
+                    message["content"] = None
+
+            messages.append(message)
+
+        elif isinstance(event, ToolResultBatch):
+            for result in event.results:
+                messages.append({"role": "tool", "tool_call_id": result.call_id, "content": result.content})
+
+        else:
+            raise TypeError(f"{type(event).__name__} is not a recognized message event type.")
+
+    return messages
