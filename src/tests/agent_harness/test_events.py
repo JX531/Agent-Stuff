@@ -136,9 +136,7 @@ def test_results_pair_with_calls_via_call_id() -> None:
         ),
     )
 
-    assert [r.call_id for r in batch.results] == [
-        c.call_id for c in assistant.tool_calls
-    ]
+    assert [r.call_id for r in batch.results] == [c.call_id for c in assistant.tool_calls]
 
 
 def test_json_round_trip_preserves_nested_tool_calls() -> None:
