@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # Tool calls and results
 
+
 class ToolCall(BaseModel):
     """A request from the model to run a tool.
 
@@ -62,7 +63,9 @@ class ToolResult(BaseModel):
     content: str
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+
 # Events
+
 
 class Event(BaseModel):
     """Base class for everything stored in the conversation history.
@@ -144,7 +147,9 @@ class ToolResultBatch(Event):
     type: Literal["tool_result_batch"] = "tool_result_batch"
     results: tuple[ToolResult, ...]
 
+
 # Streaming deltas
+
 
 class TextDelta(BaseModel):
     """A fragment of response text received while streaming.
