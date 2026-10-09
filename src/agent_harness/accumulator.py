@@ -1,8 +1,10 @@
 """Accumulator responsible assembling Deltas into completed Events"""
 
+import json
 from typing import Any
+from uuid import UUID
 
-from events import TextDelta, ToolCallDelta, ToolCallStart
+from events import AssistantMessage, TextDelta, ToolCall, ToolCallDelta, ToolCallStart
 
 
 class Accumulator:
@@ -52,3 +54,31 @@ class Accumulator:
                 )
 
             self.tool_calls[delta.index]["args"].append(delta.arguments_fragment)
+
+    def build(self, parent_id: UUID) -> AssistantMessage:
+        """
+        Turn the accumulated state into a complete event.
+
+        Call this once, after the stream has ended.
+
+        Args:
+            parent_id: ID of the event the model was responding to.
+
+        Returns:
+            The finished ``AssistantMessage``, with tool calls in index order.
+
+        Raises:
+            json.JSONDecodeError: If a call's complete arguments are not valid JSON.
+        """
+        tool_calls = tuple(
+            ToolCall(
+                call_id=call["call_id"],
+                name=call["name"],
+                args=json.loads("".join(call["args"]) or {}),
+            )
+            for _, call in self.tool_calls.items()
+        )
+
+        return AssistantMessage(
+            parent_id=parent_id, content="".join(self.texts), tool_calls=tool_calls
+        )
