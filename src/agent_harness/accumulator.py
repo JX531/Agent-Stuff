@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from events import TextDelta, ToolCallDelta, ToolCallStart
+
 
 class Accumulator:
     """Assembles streaming deltas into one complete ``AssistantMessage``.
@@ -18,6 +20,35 @@ class Accumulator:
     """
 
     def __init__(self):
-        """Init"""
+        """Builds an empty Accumulator"""
         self.texts: list[str] = []
         self.tool_calls: dict[int, Any] = {}
+
+    def feed(self, delta: TextDelta | ToolCallStart | ToolCallDelta):
+        """Absorb one streaming delta into the accumulated state.
+
+        Args:
+            delta: The next chunk from ``VLLMClient.stream_chat``.
+
+        Raises:
+            ValueError: If a ``ToolCallDelta`` arrives for an index that never had
+                a ``ToolCallStart``.
+        """
+
+        if isinstance(delta, TextDelta):
+            self.texts.append(delta.text_fragment)
+
+        elif isinstance(delta, ToolCallStart):
+            self.tool_calls[delta.index] = {
+                "call_id": delta.call_id,
+                "name": delta.name,
+                "args": [],
+            }
+
+        elif isinstance(delta, ToolCallDelta):
+            if delta.index not in self.tool_calls:
+                raise ValueError(
+                    f"Received args fragment for unknown tool call index {delta.index}"
+                )
+
+            self.tool_calls[delta.index]["args"].append(delta.arguments_fragment)
