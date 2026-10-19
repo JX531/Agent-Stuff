@@ -59,3 +59,12 @@ class ToolRegistry:
 
             else:
                 self.tools[tool.name] = tool
+
+    def schemas(self) -> list[str, Any]:
+        """
+        Return a list of schemas for each tool in registry
+
+        Returns:
+            One OpenAI-format schema dict per registered tool.
+        """
+        return [tool.to_schema for tool in self.tools]
