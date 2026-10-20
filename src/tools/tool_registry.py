@@ -62,7 +62,7 @@ class ToolRegistry:
             else:
                 self.tools[tool.name] = tool
 
-    def schemas(self) -> list[str, Any]:
+    def schemas(self) -> list[dict[str, Any]]:
         """
         Return a list of schemas for each tool in registry
 
