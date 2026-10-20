@@ -69,7 +69,7 @@ class ToolRegistry:
         Returns:
             One OpenAI-format schema dict per registered tool.
         """
-        return [tool.to_schema for tool in self.tools]
+        return [tool.to_schema() for tool in self.tools.values()]
 
     def run(self, call: ToolCall) -> ToolResult:
         """
