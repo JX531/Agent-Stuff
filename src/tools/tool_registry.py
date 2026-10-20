@@ -41,6 +41,17 @@ class Tool(BaseModel):
         }
 
 
+def tool(name: str, description: str, parameters: dict[str, Any]):
+    """
+    Decorator used to produce tools from functions
+    """
+
+    def decorator(func: Callable):
+        return Tool(name=name, description=description, parameters=parameters, func=func)
+
+    return decorator
+
+
 class ToolRegistry:
     """Registry that holds a dict of tools and supports tool call execution"""
 
