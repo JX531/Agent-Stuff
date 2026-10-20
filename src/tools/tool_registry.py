@@ -5,6 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from agent_harness.events import ToolCall, ToolResult
+
 
 class Tool(BaseModel):
     """A tool the model can invoke.
@@ -68,3 +70,28 @@ class ToolRegistry:
             One OpenAI-format schema dict per registered tool.
         """
         return [tool.to_schema for tool in self.tools]
+
+    def run(self, call: ToolCall) -> ToolResult:
+        """
+        Execute a ToolCall, returning the ToolResult, flagging as an error on failure.
+
+        Args:
+            call: A ToolCall from the model
+
+        Returns:
+            A ToolResult with the same call_id as the input ToolCall.
+        """
+
+        tool = self.tools.get(call.name)
+        if tool is None:
+            return ToolResult(
+                call_id=call.call_id, is_error=True, content=f"Unknown tool invoked: {call.name}"
+            )
+
+        try:
+            return ToolResult(call_id=call.call_id, content=tool.func(**call.args))
+
+        except Exception as e:
+            return ToolResult(
+                call_id=call.call_id, is_error=True, content=f"{type(e).__name__}: {e}"
+            )
