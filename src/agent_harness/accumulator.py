@@ -74,7 +74,7 @@ class Accumulator:
             ToolCall(
                 call_id=call["call_id"],
                 name=call["name"],
-                args=json.loads("".join(call["args"]) or {}),
+                args=json.loads("".join(call["args"]) or "{}"),
             )
             for _, call in self.tool_calls.items()
         )
