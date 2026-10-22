@@ -4,7 +4,7 @@ import json
 from typing import Any
 from uuid import UUID
 
-from events import AssistantMessage, TextDelta, ToolCall, ToolCallDelta, ToolCallStart
+from agent_harness.events import AssistantMessage, TextDelta, ToolCall, ToolCallDelta, ToolCallStart
 
 
 class Accumulator:
@@ -74,7 +74,7 @@ class Accumulator:
             ToolCall(
                 call_id=call["call_id"],
                 name=call["name"],
-                args=json.loads("".join(call["args"]) or {}),
+                args=json.loads("".join(call["args"]) or "{}"),
             )
             for _, call in self.tool_calls.items()
         )
