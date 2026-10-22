@@ -1,4 +1,4 @@
-"""Implementation of tool base class and registry for agent harness"""
+"""Tool base class and tool registry for the agent harness."""
 
 from collections.abc import Callable
 from typing import Any
@@ -42,8 +42,15 @@ class Tool(BaseModel):
 
 
 def tool(name: str, description: str, parameters: dict[str, Any]):
-    """
-    Decorator used to produce tools from functions
+    """Decorator that turns a function into a ``Tool``.
+
+    Args:
+        name: Tool name, as the model will call it.
+        description: Description of the tool shown to the model.
+        parameters: JSON Schema describing the arguments.
+
+    Returns:
+        A decorator that replaces the decorated function with a ``Tool``.
     """
 
     def decorator(func: Callable):
@@ -53,11 +60,14 @@ def tool(name: str, description: str, parameters: dict[str, Any]):
 
 
 class ToolRegistry:
-    """Registry that holds a dict of tools and supports tool call execution"""
+    """Registry that holds tools by name and executes tool calls.
+
+    Attributes:
+        tools: Registered tools, keyed by tool name.
+    """
 
     def __init__(self, tools: list[Tool]):
-        """
-        Create a ToolRegistry
+        """Create a registry.
 
         Args:
             tools: Tools to register. Names must be unique.
@@ -74,8 +84,7 @@ class ToolRegistry:
                 self.tools[tool.name] = tool
 
     def schemas(self) -> list[dict[str, Any]]:
-        """
-        Return a list of schemas for each tool in registry
+        """List the schemas of every registered tool.
 
         Returns:
             One OpenAI-format schema dict per registered tool.
@@ -83,14 +92,16 @@ class ToolRegistry:
         return [tool.to_schema() for tool in self.tools.values()]
 
     def run(self, call: ToolCall) -> ToolResult:
-        """
-        Execute a ToolCall, returning the ToolResult, flagging as an error on failure.
+        """Execute a tool call, flagging the result as an error on failure.
+
+        Unknown tool names and exceptions raised by the tool are returned as error
+        results rather than raised.
 
         Args:
-            call: A ToolCall from the model
+            call: A ``ToolCall`` from the model.
 
         Returns:
-            A ToolResult with the same call_id as the input ToolCall.
+            A ``ToolResult`` with the same ``call_id`` as ``call``.
         """
 
         tool = self.tools.get(call.name)

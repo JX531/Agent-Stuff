@@ -1,4 +1,4 @@
-"""Accumulator responsible assembling Deltas into completed Events"""
+"""Accumulator responsible for assembling deltas into completed events."""
 
 import json
 from typing import Any
@@ -22,7 +22,7 @@ class Accumulator:
     """
 
     def __init__(self):
-        """Builds an empty Accumulator"""
+        """Create an empty accumulator."""
         self.texts: list[str] = []
         self.tool_calls: dict[int, Any] = {}
 
@@ -56,8 +56,7 @@ class Accumulator:
             self.tool_calls[delta.index]["args"].append(delta.arguments_fragment)
 
     def build(self, parent_id: UUID) -> AssistantMessage:
-        """
-        Turn the accumulated state into a complete event.
+        """Turn the accumulated state into a complete event.
 
         Call this once, after the stream has ended.
 
