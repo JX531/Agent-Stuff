@@ -69,3 +69,31 @@ class SessionHistory:
             cur = self.session_history[cur.parent_id]
 
         return list(path)
+
+    def descend_to_leaf(self, event: Event, index: int = 0) -> None:
+        """
+        Descends to a leaf from a given event and sets the session head to it.
+
+        Args:
+            event: Event to descend to leaf from.
+            index: Index of child event to descend to leaf by. Defaults to first child event.
+
+        Raises:
+            ValueError: If event is not found in session history or index out of range
+        """
+
+        if event.id not in self.session_history:
+            raise ValueError(f"No event found in session history with ID: {event.id}")
+
+        children = self.children[event.id]
+        if children and not 0 <= index < len(children):
+            raise ValueError(
+                f"Index {index} out of range for Event {event.id} with {len(children)} children"
+            )
+
+        cur = self.session_history[children[index]] if children else event
+
+        while self.children[cur.id]:
+            cur = self.session_history[self.children[cur.id][0]]
+
+        self.head = cur
