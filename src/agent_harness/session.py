@@ -31,15 +31,21 @@ class Session:
         self.max_steps = max_steps
 
     def call_model(self) -> AssistantMessage:  # TODO Yield deltas for streaming
-        """Calls the model
+        """Call the model on the current branch and record its reply.
 
-        Sends the path of events from current conversation head to model,
-        feeds the response deltas into an accumulator,
-        adds the resulting AssistantMessage into history, and returns it.
+        Sends the path from the root to the current head to the model, feeds the
+        streamed deltas into a fresh ``Accumulator``, appends the resulting
+        ``AssistantMessage`` to the history (making it the new head), and returns it.
+        Nothing is added to the history if the call fails.
 
         Returns:
-            message: The AssistantMessage response from model.
+            The ``AssistantMessage`` produced by the model.
+
+        Raises:
+            RuntimeError: If the server responds with an HTTP error status.
+            json.JSONDecodeError: If a tool call's arguments are not valid JSON.
         """
+
         accum = Accumulator()
         for delta in self.client.stream_chat(
             events=self.history.ascend_to_root(), tools=self.tool_registry.schemas()
