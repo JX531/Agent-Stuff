@@ -52,7 +52,7 @@ class Session:
         ):
             accum.feed(delta=delta)
 
-        message = accum.build(parent_id=self.history.head.id)
+        message = accum.build(parent_id=self.history.head)
         self.history.add_event(message)
 
         return message
@@ -77,7 +77,7 @@ class Session:
             RuntimeError: If max steps exceeded or the server responds with an HTTP error status.
             JSONDecodeError: If a tool call's arguments are not valid JSON.
         """
-        self.history.add_event(UserMessage(parent_id=self.history.head.id, content=user_message))
+        self.history.add_event(UserMessage(parent_id=self.history.head, content=user_message))
 
         for _ in range(self.max_steps):
             response = self.call_model()
@@ -85,7 +85,7 @@ class Session:
             if not response.tool_calls:
                 return response
 
-            results = tuple(self.registry.run(call) for call in response.tool_calls)
-            self.history.add(ToolResultBatch(parent_id=response.id, results=results))
+            results = tuple(self.tool_registry.run(call) for call in response.tool_calls)
+            self.history.add_event(ToolResultBatch(parent_id=response.id, results=results))
 
         raise RuntimeError(f"Exceed max steps: {self.max_steps}")
