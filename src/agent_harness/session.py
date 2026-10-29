@@ -57,7 +57,9 @@ class Session:
 
         return message
 
-    def run_turn(self, user_message: str) -> AssistantMessage:
+    def run_turn(
+        self, user_message: str
+    ) -> AssistantMessage:  # TODO resolution logic if turn limit exceeded
         """Run one user turn: send a message, then loop until the model stops calling tools.
 
         Appends a ``UserMessage`` to the current head, then alternates between
