@@ -21,8 +21,8 @@ class SessionHistory:
             to an empty list.
         active_child: For each event that has children, the ID of the child on
             the currently selected branch.
-        head: The tip of the current branch, which new events are normally
-            attached to.
+        head: The ID of the tip of the current branch, which new events are
+            normally attached to.
     """
 
     def __init__(self):
@@ -36,7 +36,7 @@ class SessionHistory:
         self.session_history: dict[UUID, Event] = {self.session_root.id: self.session_root}
         self.children: dict[UUID, list[UUID]] = {self.session_root.id: []}
         self.active_child: dict[UUID, UUID] = {}
-        self.head: Event = self.session_root
+        self.head: UUID = self.session_root.id
 
     def add_event(self, event: Event):
         """Add an event to the session and make it the new head.
@@ -65,9 +65,9 @@ class SessionHistory:
         self.children[event.parent_id].append(event.id)
         self.active_child[event.parent_id] = event.id
         self.children[event.id] = []
-        self.head = event
+        self.head = event.id
 
-    def ascend_to_root(self, event: Event | None = None) -> list[Event]:
+    def ascend_to_root(self, event_id: UUID | None = None) -> list[Event]:
         """Collect the path from the root down to an event.
 
         Follows ``parent_id`` links upward from the event until it reaches the
@@ -76,19 +76,21 @@ class SessionHistory:
         ``events_to_messages``.
 
         Args:
-            event: The event to end the path at. Defaults to the current head.
+            event_id: The ID of the event to end the path at. Defaults to the
+                current head.
 
         Returns:
-            The events from the root to ``event``, oldest first, with both the
-            root and ``event`` included.
+            The events from the root to the given event, oldest first, with both
+            the root and the event included.
 
         Raises:
             ValueError: If the event is not in the session history.
         """
-        cur = self.head if event is None else event
-        if cur.id not in self.session_history:
-            raise ValueError(f"No event found in session history with ID: {cur.id}")
+        cur_id = self.head if event_id is None else event_id
+        if cur_id not in self.session_history:
+            raise ValueError(f"No event found in session history with ID: {cur_id}")
 
+        cur = self.session_history[cur_id]
         path: deque[Event] = deque()
         while True:
             path.appendleft(cur)
@@ -100,16 +102,16 @@ class SessionHistory:
 
         return list(path)
 
-    def descend_to_leaf(self, event: Event, index: int) -> None:
+    def descend_to_leaf(self, event_id: UUID, index: int) -> None:
         """Select a child of an event, descend to a leaf, and move the head there.
 
         The child at ``index`` is recorded as the event's active child. Below that
         child, the descent follows each node's remembered active child, so a branch
-        that was visited before resumes where it left off. If ``event`` is already
-        a leaf, ``index`` is ignored and the head moves to ``event``.
+        that was visited before resumes where it left off. If the event is already
+        a leaf, ``index`` is ignored and the head moves to that event.
 
         Args:
-            event: The event whose children are being chosen between.
+            event_id: The ID of the event whose children are being chosen between.
             index: Position of the child to select within the event's children,
                 in creation order.
 
@@ -118,22 +120,21 @@ class SessionHistory:
                 has children and ``index`` is out of range.
         """
 
-        if event.id not in self.session_history:
-            raise ValueError(f"No event found in session history with ID: {event.id}")
+        if event_id not in self.session_history:
+            raise ValueError(f"No event found in session history with ID: {event_id}")
 
-        children = self.children[event.id]
+        children = self.children[event_id]
         if children and not 0 <= index < len(children):
             raise ValueError(
-                f"Index {index} out of range for Event {event.id} with {len(children)} children"
+                f"Index {index} out of range for Event {event_id} with {len(children)} children"
             )
 
-        cur = event
+        cur_id = event_id
         if children:
-            target_id = children[index]
-            self.active_child[cur.id] = target_id
-            cur = self.session_history[target_id]
+            cur_id = children[index]
+            self.active_child[event_id] = cur_id
 
-        while cur.id in self.active_child:
-            cur = self.session_history[self.active_child[cur.id]]
+        while cur_id in self.active_child:
+            cur_id = self.active_child[cur_id]
 
-        self.head = cur
+        self.head = cur_id
