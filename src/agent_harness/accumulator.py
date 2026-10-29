@@ -75,7 +75,7 @@ class Accumulator:
                 name=call["name"],
                 args=json.loads("".join(call["args"]) or "{}"),
             )
-            for _, call in self.tool_calls.items()
+            for _, call in sorted(self.tool_calls.items())
         )
 
         return AssistantMessage(
