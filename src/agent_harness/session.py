@@ -1,5 +1,7 @@
 """Implementation of session management"""
 
+from uuid import UUID
+
 from agent_harness.accumulator import Accumulator
 from agent_harness.client import VLLMClient
 from agent_harness.events import AssistantMessage, ToolResultBatch, UserMessage
@@ -89,3 +91,17 @@ class Session:
             self.history.add_event(ToolResultBatch(parent_id=response.id, results=results))
 
         raise RuntimeError(f"Exceed max steps: {self.max_steps}")
+
+    def switch_branch(self, event_id: UUID, index: int):
+        """Follow a different child of a fork and move the head to that branch's leaf.
+
+        Args:
+            event_id: ID of the event whose children are being chosen between.
+            index: Position of the child to select, in creation order.
+
+        Raises:
+            ValueError: If ``event_id`` is not in the history, or ``index`` is out of
+                        range for that event's children.
+        """
+
+        self.history.descend_to_leaf(event_id=event_id, index=index)
