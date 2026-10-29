@@ -2,7 +2,7 @@
 
 from agent_harness.accumulator import Accumulator
 from agent_harness.client import VLLMClient
-from agent_harness.events import AssistantMessage
+from agent_harness.events import AssistantMessage, ToolResultBatch, UserMessage
 from agent_harness.history import SessionHistory
 from agent_harness.tool_registry import ToolRegistry
 
@@ -56,3 +56,34 @@ class Session:
         self.history.add_event(message)
 
         return message
+
+    def run_turn(self, user_message: str) -> AssistantMessage:
+        """Run one user turn: send a message, then loop until the model stops calling tools.
+
+        Appends a ``UserMessage`` to the current head, then alternates between
+        calling the model and running the tools it requests. Each pass adds an
+        ``AssistantMessage`` and, if that message made tool calls, a
+        ``ToolResultBatch``. The turn ends when the model replies without tool calls.
+
+        Args:
+            user_text: The text the user typed.
+
+        Returns:
+            The final ``AssistantMessage``, which has no tool calls.
+
+        Raises:
+            RuntimeError: If max steps exceeded or the server responds with an HTTP error status.
+            JSONDecodeError: If a tool call's arguments are not valid JSON.
+        """
+        self.history.add_event(UserMessage(parent_id=self.history.head.id, content=user_message))
+
+        for _ in range(self.max_steps):
+            response = self.call_model()
+
+            if not response.tool_calls:
+                return response
+
+            results = tuple(self.registry.run(call) for call in response.tool_calls)
+            self.history.add(ToolResultBatch(parent_id=response.id, results=results))
+
+        raise RuntimeError(f"Exceed max steps: {self.max_steps}")
